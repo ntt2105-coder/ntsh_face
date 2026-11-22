@@ -1,0 +1,921 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>南投高中校園人臉辨識迎賓系統</title>
+<style>
+:root{--bg:#0b1220;--panel:#141d33;--panel2:#1b2742;--line:#2a3a5e;--text:#f4f7ff;--muted:#9fb0d0;--accent:#ffcf4a;--ok:#3ddc97;--bad:#ff6b6b;--blue:#4aa3ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;font-size:16px}
+.hidden{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}
+button:hover{border-color:var(--blue)}
+button.primary{background:var(--accent);color:#1a1a1a;border-color:var(--accent);font-weight:700}
+button.danger{background:#3a1b25;border-color:#7a2c3c;color:#ffb3bd}
+button.on{background:var(--blue);color:#06101f;border-color:var(--blue);font-weight:700}
+input,select,textarea{background:#0e1730;border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:70px}
+label{display:block;margin:10px 0 4px;color:var(--muted);font-size:14px}
+label.chk{display:flex;gap:8px;align-items:flex-start;color:var(--text);font-size:15px}
+label.chk input{width:auto;margin-top:4px}
+/* 頂端列 */
+#topbar{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#0a1020;border-bottom:1px solid var(--line)}
+#topbar .brand{font-weight:700;font-size:18px;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 迎賓畫面 */
+#kiosk{height:calc(100dvh - 56px);display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:16px;padding:16px}
+.stage{display:flex;align-items:center;justify-content:center;min-height:0}
+.camwrap{position:relative;width:min(100%,calc((100dvh - 100px)*var(--arn,1.778)));aspect-ratio:var(--arn,1.778);background:#000;border-radius:18px;overflow:hidden;border:2px solid var(--line)}
+.camwrap video{width:100%;height:100%;object-fit:fill;transform:scaleX(-1);display:block}
+.camwrap canvas{position:absolute;inset:0;width:100%;height:100%}
+#camHint{position:absolute;left:12px;right:12px;bottom:12px;background:rgba(255,107,107,.92);color:#2a0b10;padding:8px 12px;border-radius:10px;font-weight:700;text-align:center}
+.info{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;overflow:auto}
+.info img{max-height:120px;max-width:70%;object-fit:contain}
+.info h1{margin:0;font-size:clamp(28px,3.6vw,52px);line-height:1.2}
+#clock{font-size:clamp(48px,7vw,104px);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1}
+#dateText{font-size:clamp(18px,2vw,30px);color:var(--muted)}
+#announce{font-size:clamp(20px,2.4vw,36px);line-height:1.6;margin-top:8px}
+#statusLine{margin-top:auto;font-size:14px;color:var(--muted)}
+/* 歡迎畫面 */
+#welcome{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle at 50% 40%,#1f3b78,#0b1220 70%);animation:fadeIn .4s ease}
+#welcome.stranger{background:radial-gradient(circle at 50% 40%,#3d3a1f,#0b1220 70%)}
+.w-inner{position:relative;z-index:2;padding:24px;animation:pop .6s cubic-bezier(.2,1.4,.4,1)}
+#wIcon{font-size:clamp(60px,10vw,140px)}
+#wTitle{font-size:clamp(36px,7vw,110px);font-weight:800;line-height:1.25;color:#fff;text-shadow:0 4px 30px rgba(74,163,255,.6)}
+#wSub{margin-top:18px;font-size:clamp(22px,3.4vw,52px);color:var(--accent)}
+#confetti{position:absolute;inset:0;overflow:hidden;z-index:1;pointer-events:none}
+.cf{position:absolute;top:-30px;width:12px;height:18px;opacity:.95;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(115vh) rotate(720deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+/* 開始畫面 */
+#startOverlay{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;max-width:560px;width:100%;text-align:center}
+.card h2{margin:0 0 8px;font-size:26px}
+#startMsg{margin:14px 0;color:var(--muted);line-height:1.7;white-space:pre-line}
+#startMsg.err{color:#ffb3bd}
+/* 管理頁 */
+#admin{height:calc(100dvh - 56px);overflow:auto;padding:16px}
+.wrap{max-width:1100px;margin:0 auto}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.row>*{flex:0 0 auto}
+.row input[type=search],.row input[type=text]{flex:1 1 200px;width:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}#kiosk{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+@media(max-aspect-ratio:1/1){#kiosk{grid-template-columns:1fr;grid-template-rows:auto 1fr}.camwrap{width:100%}}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{color:var(--muted);font-weight:600;white-space:nowrap}
+td button{padding:4px 10px;font-size:14px;margin-right:4px}
+.tblwrap{overflow:auto;max-height:55vh}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#22304f;color:var(--muted)}
+.badge.ok{background:#12382b;color:var(--ok)}
+.badge.bad{background:#3a1b25;color:#ffb3bd}
+.note{color:var(--muted);font-size:14px;line-height:1.7}
+.warn{background:#3a2f14;border:1px solid #7a6420;color:#ffe08a;padding:10px 14px;border-radius:10px;margin-bottom:12px;font-size:14px;line-height:1.7}
+.regcam{position:relative;background:#000;border-radius:12px;overflow:hidden}
+.regcam video{width:100%;display:block;transform:scaleX(-1)}
+#r_thumbs{display:flex;gap:8px;margin:10px 0;min-height:64px}
+#r_thumbs canvas{width:64px;height:64px;border-radius:8px;border:2px solid var(--ok)}
+#r_msg{min-height:22px;font-size:14px}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:420px;width:92%}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.range{display:flex;gap:10px;align-items:center}
+.range input{flex:1}
+</style>
+</head>
+<body>
+
+<!-- 開始畫面:需使用者點擊,才能啟用鏡頭與語音 -->
+<div id="startOverlay">
+  <div class="card">
+    <h2 id="startTitle">校園人臉辨識迎賓系統</h2>
+    <div id="startMsg">按下「開始迎賓」後,系統會載入辨識模型並啟用鏡頭。\n(首次載入需連網下載模型)</div>
+    <button class="primary" id="startBtn" style="font-size:20px;padding:12px 28px">開始迎賓</button>
+    <div style="margin-top:14px"><button id="adminOnlyBtn" style="font-size:14px">僅進入管理頁(不啟用鏡頭)</button></div>
+  </div>
+</div>
+
+<header id="topbar">
+  <div class="brand" id="brand">南投高中 迎賓系統</div>
+  <button id="navKiosk" class="on">迎賓畫面</button>
+  <button id="navAdmin">管理</button>
+  <button id="navFull">全螢幕</button>
+</header>
+
+<!-- ============ 迎賓畫面 ============ -->
+<section id="kiosk">
+  <div class="stage">
+    <div class="camwrap" id="camwrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <div id="camHint" class="hidden"></div>
+    </div>
+  </div>
+  <aside class="info">
+    <img id="logoImg" class="hidden" alt="校徽">
+    <h1 id="schoolName">國立南投高中</h1>
+    <div id="clock">--:--</div>
+    <div id="dateText"></div>
+    <div id="announce"></div>
+    <div id="statusLine">準備中…</div>
+  </aside>
+</section>
+
+<div id="welcome" class="hidden">
+  <div class="w-inner">
+    <div id="wIcon">👋</div>
+    <div id="wTitle"></div>
+    <div id="wSub"></div>
+  </div>
+  <div id="confetti"></div>
+</div>
+
+<!-- ============ 管理頁 ============ -->
+<section id="admin" class="hidden">
+  <div class="wrap">
+
+    <!-- 密碼閘門 -->
+    <div id="gate" class="card" style="margin:40px auto">
+      <h2 id="gateTitle">管理登入</h2>
+      <div class="note" id="gateNote"></div>
+      <div style="margin:14px 0;text-align:left">
+        <label>管理密碼</label>
+        <input type="password" id="pw1" autocomplete="off">
+        <div id="pw2wrap" class="hidden"><label>再輸入一次</label><input type="password" id="pw2" autocomplete="off"></div>
+      </div>
+      <div id="gateMsg" class="note" style="color:#ffb3bd;min-height:22px"></div>
+      <button class="primary" id="gateBtn">進入</button>
+    </div>
+
+    <div id="adminBody" class="hidden">
+      <div class="tabs">
+        <button data-tab="people" class="on">人員名單</button>
+        <button data-tab="register">登錄人臉</button>
+        <button data-tab="logs">到訪紀錄</button>
+        <button data-tab="settings">設定</button>
+      </div>
+
+      <!-- 人員名單 -->
+      <div class="tabpane" id="tab-people">
+        <div class="warn" id="retentionWarn"></div>
+        <div class="panel">
+          <div class="row">
+            <input type="search" id="p_search" placeholder="搜尋姓名/班級">
+            <select id="p_role" style="width:auto"><option value="">全部身分</option></select>
+            <button id="p_bulkDel" class="danger">刪除選取</button>
+            <button id="p_overdue" class="danger">刪除逾期資料</button>
+          </div>
+          <div class="row">
+            <label style="margin:0">批次匯入名單 CSV(欄位:姓名,身分,班級/處室):</label>
+            <input type="file" id="p_csv" accept=".csv,text/csv" style="width:auto">
+          </div>
+          <div class="note" style="margin-bottom:8px">匯入的人員尚無臉部資料,需在「登錄人臉」頁補拍並取得同意後才能被辨識。</div>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th><input type="checkbox" id="p_all" style="width:auto"></th><th>姓名</th><th>身分</th><th>班級/處室</th><th>臉部</th><th>同意日期</th><th>建立日期</th><th>操作</th></tr></thead>
+              <tbody id="p_body"></tbody>
+            </table>
+          </div>
+          <div class="note" id="p_count" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <!-- 登錄人臉 -->
+      <div class="tabpane hidden" id="tab-register">
+        <div class="panel">
+          <div class="grid2">
+            <div>
+              <div class="regcam"><video id="video2" autoplay playsinline muted></video></div>
+              <div id="r_thumbs"></div>
+              <div class="note" id="r_tip">第 1 張:正面直視鏡頭。</div>
+            </div>
+            <div>
+              <input type="hidden" id="r_id">
+              <label>姓名</label><input type="text" id="r_name" maxlength="20">
+              <label>身分</label><select id="r_role"></select>
+              <label>班級或處室</label><input type="text" id="r_cls" maxlength="30" placeholder="例:301、教務處">
+              <label class="chk"><input type="checkbox" id="r_consent"><span>本人已閱讀並同意提供臉部特徵資料,僅用於本校迎賓與到校簽到。</span></label>
+              <label class="chk hidden" id="r_parentWrap"><input type="checkbox" id="r_parent"><span>已取得家長/監護人同意(同意日期將自動記錄)。</span></label>
+              <div class="row" style="margin-top:12px">
+                <button class="primary" id="r_shot">拍攝 (0/3)</button>
+                <button id="r_reset">重拍</button>
+                <button class="primary" id="r_save">儲存</button>
+                <button id="r_cancel">清除表單</button>
+              </div>
+              <div id="r_msg"></div>
+              <div class="note">系統只儲存臉部特徵向量,不儲存照片。預覽縮圖僅暫存於畫面,儲存或清除後即消失。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 到訪紀錄 -->
+      <div class="tabpane hidden" id="tab-logs">
+        <div class="panel">
+          <div class="row">
+            <label style="margin:0">從</label><input type="date" id="l_from" style="width:auto">
+            <label style="margin:0">到</label><input type="date" id="l_to" style="width:auto">
+            <select id="l_role" style="width:auto"><option value="">全部身分</option></select>
+            <input type="text" id="l_cls" placeholder="班級/處室(包含)" style="max-width:200px">
+            <button id="l_go" class="primary">查詢</button>
+            <button id="l_csv">匯出 CSV</button>
+            <button id="l_purge" class="danger">清除舊紀錄</button>
+          </div>
+          <div class="note" id="l_sum" style="margin-bottom:8px"></div>
+          <div class="tblwrap">
+            <table>
+              <thead><tr><th>時間</th><th>姓名</th><th>身分</th><th>班級/處室</th></tr></thead>
+              <tbody id="l_body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 設定 -->
+      <div class="tabpane hidden" id="tab-settings">
+        <div class="panel">
+          <div class="grid2">
+            <div>
+              <label>校名</label><input type="text" id="s_schoolName">
+              <label>校徽(選填)</label><input type="file" id="s_logo" accept="image/*">
+              <div class="row" style="margin-top:6px"><button id="s_logoClear">移除校徽</button></div>
+              <label>今日活動公告(可多行)</label><textarea id="s_announce"></textarea>
+              <label>辨識門檻(越小越嚴格,預設 0.5)</label>
+              <div class="range"><input type="range" id="s_threshold" min="0.3" max="0.7" step="0.01"><output id="s_thOut"></output></div>
+              <label>重複歡迎間隔(秒)</label><input type="number" id="s_cooldown" min="5" max="600">
+              <label>歡迎畫面顯示時間(毫秒)</label><input type="number" id="s_welcomeMs" min="2000" max="10000" step="500">
+              <label>資料保存期限(天,用於逾期提醒)</label><input type="number" id="s_retention" min="30" max="3650">
+            </div>
+            <div>
+              <label class="chk"><input type="checkbox" id="s_voice"><span>啟用語音朗讀</span></label>
+              <label>音量</label><div class="range"><input type="range" id="s_volume" min="0" max="1" step="0.05"><button id="s_test">測試語音</button></div>
+              <label>教師/職員歡迎語</label><input type="text" id="s_tplStaff">
+              <label>學生歡迎語</label><input type="text" id="s_tplStudent">
+              <label>貴賓/家長歡迎語</label><input type="text" id="s_tplGuest">
+              <label>陌生人歡迎語</label><input type="text" id="s_tplStranger">
+              <div class="note">可用變數:{name} 姓名、{role} 身分、{class} 班級/處室、{greet} 依時段的早安/午安/晚安。</div>
+              <label>變更管理密碼(留空則不變更)</label><input type="password" id="s_newpw" autocomplete="off">
+            </div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="primary" id="s_save">儲存設定</button>
+            <button class="danger" id="s_wipe" style="margin-left:auto">一鍵清除所有人臉與紀錄資料</button>
+          </div>
+          <div id="s_msg" class="note"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 編輯人員 -->
+<dialog id="editDlg">
+  <h3 style="margin-top:0">編輯人員</h3>
+  <input type="hidden" id="e_id">
+  <label>姓名</label><input type="text" id="e_name" maxlength="20">
+  <label>身分</label><select id="e_role"></select>
+  <label>班級或處室</label><input type="text" id="e_cls" maxlength="30">
+  <div class="row" style="margin-top:14px;justify-content:flex-end">
+    <button id="e_cancel">取消</button>
+    <button class="primary" id="e_save">儲存</button>
+  </div>
+</dialog>
+
+<script>
+/* ================================================================
+ * 南投高中校園人臉辨識迎賓系統
+ * - 臉部偵測/辨識:face-api.js(@vladmandic 版本,從 CDN 載入)
+ * - 資料儲存:瀏覽器 IndexedDB(人員、紀錄)與 localStorage(設定)
+ * - 不上傳任何資料、不儲存原始照片,僅存臉部特徵向量
+ * ================================================================ */
+
+/* ---------- 共用工具 ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const ROLES = ['教師', '職員', '學生', '貴賓', '家長'];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+const pad = n => String(n).padStart(2, '0');
+const fmtTime = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+const fmtDate = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+
+/* ---------- 設定 ---------- */
+const DEFAULTS = {
+  schoolName: '國立南投高中', logo: '', announce: '歡迎蒞臨本校\n請依指示完成報到',
+  threshold: 0.5, voice: true, volume: 1, cooldown: 30, welcomeMs: 3000, retentionDays: 365,
+  tplStaff: '{name}老師,{greet}', tplStudent: '{name}同學,歡迎回來',
+  tplGuest: '歡迎{name},感謝蒞臨本校', tplStranger: '歡迎蒞臨本校,請先至警衛室/報到處登記',
+  pwHash: ''
+};
+let settings = Object.assign({}, DEFAULTS);
+try { Object.assign(settings, JSON.parse(localStorage.getItem('ntsh_settings') || '{}')); } catch (e) {}
+function saveSettings() {
+  try { localStorage.setItem('ntsh_settings', JSON.stringify(settings)); } catch (e) { alert('設定儲存失敗(可能是儲存空間已滿或無痕模式)。'); }
+}
+
+/* ---------- IndexedDB ---------- */
+let db;
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('ntsh-welcome', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('people', { keyPath: 'id' });
+      const l = d.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+      l.createIndex('t', 't');
+    };
+    r.onsuccess = () => { db = r.result; res(); };
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(store, mode, fn) {
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, mode);
+    const s = t.objectStore(store);
+    let out;
+    const rq = fn(s);
+    if (rq) rq.onsuccess = () => { out = rq.result; };
+    t.oncomplete = () => res(out);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  });
+}
+const dbAll = s => tx(s, 'readonly', o => o.getAll());
+const dbPut = (s, v) => tx(s, 'readwrite', o => o.put(v));
+const dbDel = (s, k) => tx(s, 'readwrite', o => o.delete(k));
+const dbClear = s => tx(s, 'readwrite', o => o.clear());
+
+/* ---------- 人員快取與比對 ---------- */
+let people = [];
+let matchers = [];
+async function reloadPeople() {
+  people = await dbAll('people');
+  // 預先把特徵向量轉成 Float32Array,加速比對
+  matchers = people.filter(p => p.descriptors && p.descriptors.length)
+    .map(p => ({ p, ds: p.descriptors.map(d => Float32Array.from(d)) }));
+}
+function matchFace(desc) {
+  let best = null, bd = 9;
+  for (const m of matchers) {
+    for (const d of m.ds) {
+      const dist = faceapi.euclideanDistance(desc, d);
+      if (dist < bd) { bd = dist; best = m.p; }
+    }
+  }
+  return (best && bd < settings.threshold) ? { p: best, dist: bd } : null;
+}
+
+/* ---------- 載入 face-api.js ---------- */
+const CDN_BASES = [
+  'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13',
+  'https://unpkg.com/@vladmandic/face-api@1.7.13'
+];
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error('載入失敗:' + src));
+    document.head.appendChild(s);
+  });
+}
+let modelsReady = false;
+async function loadModels(setMsg) {
+  if (modelsReady) return;
+  let lastErr;
+  for (const base of CDN_BASES) {
+    try {
+      setMsg('正在載入辨識程式庫…');
+      if (!window.faceapi) await loadScript(base + '/dist/face-api.js');
+      setMsg('正在下載辨識模型(約 10 MB)…');
+      const url = base + '/model/';
+      await faceapi.nets.tinyFaceDetector.loadFromUri(url);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(url);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(url);
+      modelsReady = true;
+      return;
+    } catch (e) { lastErr = e; console.warn(e); }
+  }
+  throw new Error('無法載入辨識模型,請確認網路連線後重試。\n(' + (lastErr && lastErr.message) + ')');
+}
+
+/* ---------- 鏡頭 ---------- */
+const video = $('#video'), video2 = $('#video2');
+const overlay = $('#overlay'), octx = overlay.getContext('2d');
+let stream = null;
+async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('此瀏覽器或連線方式無法使用鏡頭。\n請用 https:// 或 localhost 開啟本頁,並使用新版 Chrome / Edge / Safari。');
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
+  } catch (e) {
+    let msg = '無法啟用鏡頭:' + e.name;
+    if (e.name === 'NotAllowedError' || e.name === 'SecurityError')
+      msg = '鏡頭權限被拒絕。\n請點網址列左側的鎖頭/相機圖示 → 允許「相機」→ 重新整理頁面,再按「開始迎賓」。';
+    else if (e.name === 'NotFoundError' || e.name === 'OverconstrainedError')
+      msg = '找不到可用的鏡頭,請確認裝置已連接鏡頭。';
+    else if (e.name === 'NotReadableError')
+      msg = '鏡頭正被其他程式使用,請關閉其他使用鏡頭的程式或視窗後重試。';
+    throw new Error(msg);
+  }
+  video.srcObject = stream; video2.srcObject = stream;
+  await video.play();
+  video2.play().catch(() => {});
+  await new Promise(r => { if (video.videoWidth) r(); else video.onloadedmetadata = r; });
+  overlay.width = video.videoWidth; overlay.height = video.videoHeight;
+  $('#camwrap').style.setProperty('--arn', (video.videoWidth / video.videoHeight).toFixed(4));
+}
+
+/* ---------- 語音 ---------- */
+function pickVoice() {
+  const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+  return vs.find(v => /zh[-_]TW/i.test(v.lang)) || vs.find(v => /zh/i.test(v.lang)) || null;
+}
+function speak(text) {
+  if (!settings.voice || !window.speechSynthesis) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/\//g, '或'));
+    u.lang = 'zh-TW'; u.volume = settings.volume; u.rate = 0.95;
+    const v = pickVoice(); if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) { console.warn(e); }
+}
+if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => {};
+
+/* ---------- 歡迎語 ---------- */
+function greet() { const h = new Date().getHours(); return h < 12 ? '早安' : h < 18 ? '午安' : '晚安'; }
+function renderTpl(tpl, p) {
+  return tpl.replace(/\{name\}/g, p ? p.name : '').replace(/\{role\}/g, p ? p.role : '')
+    .replace(/\{class\}/g, p ? (p.cls || '') : '').replace(/\{greet\}/g, greet());
+}
+function tplFor(p) {
+  if (!p) return settings.tplStranger;
+  if (p.role === '學生') return settings.tplStudent;
+  if (p.role === '教師' || p.role === '職員') return settings.tplStaff;
+  return settings.tplGuest;
+}
+
+/* ---------- 迎賓畫面:時鐘與公告 ---------- */
+function tickClock() {
+  const d = new Date();
+  $('#clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  $('#dateText').textContent = d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+}
+setInterval(tickClock, 1000); tickClock();
+function applySettings() {
+  $('#schoolName').textContent = settings.schoolName;
+  $('#brand').textContent = settings.schoolName + ' 迎賓系統';
+  $('#startTitle').textContent = settings.schoolName + ' 迎賓系統';
+  document.title = settings.schoolName + '校園人臉辨識迎賓系統';
+  $('#announce').innerHTML = esc(settings.announce).replace(/\n/g, '<br>');
+  const img = $('#logoImg');
+  if (settings.logo) { img.src = settings.logo; img.classList.remove('hidden'); } else img.classList.add('hidden');
+}
+
+/* ---------- 歡迎動畫 ---------- */
+let welcoming = false;
+const lastWelcome = {};
+function confetti() {
+  const box = $('#confetti'); box.innerHTML = '';
+  const colors = ['#ffcf4a', '#4aa3ff', '#3ddc97', '#ff6b6b', '#c58bff', '#fff'];
+  for (let i = 0; i < 70; i++) {
+    const d = document.createElement('div');
+    d.className = 'cf';
+    d.style.left = Math.random() * 100 + '%';
+    d.style.background = colors[i % colors.length];
+    d.style.animationDuration = (2 + Math.random() * 2.2) + 's';
+    d.style.animationDelay = (Math.random() * 0.8) + 's';
+    d.style.transform = `rotate(${Math.random() * 360}deg)`;
+    box.appendChild(d);
+  }
+}
+async function logVisit(p) {
+  try { await dbPut('logs', { t: Date.now(), pid: p.id, name: p.name, role: p.role, cls: p.cls || '' }); } catch (e) { console.warn(e); }
+}
+function welcome(p) {
+  welcoming = true;
+  lastWelcome[p ? p.id : 'stranger'] = Date.now();
+  const msg = renderTpl(tplFor(p), p);
+  const w = $('#welcome');
+  w.classList.toggle('stranger', !p);
+  $('#wIcon').textContent = p ? '👋' : '🏫';
+  $('#wTitle').textContent = msg;
+  $('#wSub').textContent = p ? [p.role, p.cls].filter(Boolean).join(' · ') : '';
+  if (p) confetti(); else $('#confetti').innerHTML = '';
+  w.classList.remove('hidden');
+  speak(msg);
+  if (p) logVisit(p);
+  setTimeout(() => { w.classList.add('hidden'); welcoming = false; }, Math.max(2000, settings.welcomeMs));
+}
+
+/* ---------- 辨識主迴圈 ---------- */
+let view = 'kiosk';
+let running = false;
+const streak = {};
+function drawLabel(x, y, w, text, color) {
+  const fs = Math.max(18, overlay.width / 45);
+  octx.font = `700 ${fs}px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
+  const tw = octx.measureText(text).width + 16;
+  const th = fs + 12;
+  const lx = Math.max(0, Math.min(x, overlay.width - tw));
+  const ly = y - th < 0 ? y + 2 : y - th;
+  octx.fillStyle = color; octx.fillRect(lx, ly, tw, th);
+  octx.fillStyle = '#0b1220'; octx.textBaseline = 'middle'; octx.fillText(text, lx + 8, ly + th / 2);
+}
+function handleDetections(dets) {
+  const W = overlay.width, H = overlay.height;
+  octx.clearRect(0, 0, W, H);
+  const seen = new Map();
+  for (const d of dets) {
+    const b = d.detection.box;
+    const m = matchFace(d.descriptor);
+    const key = m ? m.p.id : 'stranger';
+    const x = W - b.x - b.width; // 畫面左右鏡像,座標需翻轉
+    octx.lineWidth = Math.max(3, W / 300);
+    octx.strokeStyle = m ? '#3ddc97' : '#ffcf4a';
+    octx.strokeRect(x, b.y, b.width, b.height);
+    drawLabel(x, b.y, b.width, m ? `${m.p.name}(${m.p.role})` : '訪客', m ? '#3ddc97' : '#ffcf4a');
+    const area = b.width * b.height;
+    const prev = seen.get(key);
+    if (!prev || prev.area < area) seen.set(key, { area, p: m ? m.p : null });
+  }
+  // 連續出現次數:避免單張畫面誤判
+  for (const k of Object.keys(streak)) if (!seen.has(k)) delete streak[k];
+  for (const k of seen.keys()) streak[k] = (streak[k] || 0) + 1;
+  if (welcoming) return;
+  const now = Date.now();
+  let cand = null;
+  for (const [k, v] of seen) {
+    if (k === 'stranger') continue;
+    if (streak[k] >= 2 && now - (lastWelcome[k] || 0) > settings.cooldown * 1000) {
+      if (!cand || v.area > cand.area) cand = v; // 優先歡迎畫面中最近(臉最大)的人
+    }
+  }
+  if (cand) { welcome(cand.p); return; }
+  if (seen.has('stranger') && streak.stranger >= 4 && now - (lastWelcome.stranger || 0) > 15000) welcome(null);
+}
+async function loop() {
+  if (!running || view !== 'kiosk') { setTimeout(loop, 400); return; }
+  const t0 = performance.now();
+  try {
+    const dets = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.45 }))
+      .withFaceLandmarks().withFaceDescriptors();
+    handleDetections(dets);
+  } catch (e) { console.error(e); }
+  setTimeout(loop, Math.max(60, 200 - (performance.now() - t0)));
+}
+/* 光線檢查:太暗或太亮時提示 */
+const bc = document.createElement('canvas'); bc.width = 32; bc.height = 24;
+const bctx = bc.getContext('2d', { willReadFrequently: true });
+setInterval(() => {
+  if (!running || !video.videoWidth) return;
+  try {
+    bctx.drawImage(video, 0, 0, 32, 24);
+    const px = bctx.getImageData(0, 0, 32, 24).data;
+    let s = 0; for (let i = 0; i < px.length; i += 4) s += px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114;
+    const avg = s / (px.length / 4);
+    const hint = $('#camHint');
+    if (avg < 45) { hint.textContent = '光線不足,請增加照明'; hint.classList.remove('hidden'); }
+    else if (avg > 215) { hint.textContent = '畫面過亮或逆光,請調整鏡頭角度'; hint.classList.remove('hidden'); }
+    else hint.classList.add('hidden');
+  } catch (e) {}
+}, 2000);
+
+/* ---------- 視窗切換與管理登入 ---------- */
+let adminAuthed = false;
+function setView(v) {
+  view = v;
+  $('#kiosk').classList.toggle('hidden', v !== 'kiosk');
+  $('#admin').classList.toggle('hidden', v !== 'admin');
+  $('#navKiosk').classList.toggle('on', v === 'kiosk');
+  $('#navAdmin').classList.toggle('on', v === 'admin');
+  if (v === 'kiosk') { adminAuthed = false; $('#adminBody').classList.add('hidden'); $('#gate').classList.remove('hidden'); }
+  if (v === 'admin') renderGate();
+}
+$('#navKiosk').onclick = () => setView('kiosk');
+$('#navAdmin').onclick = () => setView('admin');
+$('#navFull').onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen().catch(() => {});
+};
+async function sha(t) {
+  try {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('ntsh|' + t));
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+  } catch (e) { let h = 5381; for (const c of 'ntsh|' + t) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'x' + h; }
+}
+function renderGate() {
+  if (adminAuthed) { $('#gate').classList.add('hidden'); $('#adminBody').classList.remove('hidden'); showTab(currentTab); return; }
+  $('#gate').classList.remove('hidden'); $('#adminBody').classList.add('hidden');
+  const first = !settings.pwHash;
+  $('#gateTitle').textContent = first ? '首次使用:設定管理密碼' : '管理登入';
+  $('#gateNote').textContent = first ? '請設定管理密碼(至少 4 碼),之後進入管理頁都需要輸入。密碼僅存於本機。' : '';
+  $('#pw2wrap').classList.toggle('hidden', !first);
+  $('#pw1').value = ''; $('#pw2').value = ''; $('#gateMsg').textContent = '';
+  setTimeout(() => $('#pw1').focus(), 50);
+}
+async function gateSubmit() {
+  const pw = $('#pw1').value;
+  if (!settings.pwHash) {
+    if (pw.length < 4) { $('#gateMsg').textContent = '密碼至少 4 碼。'; return; }
+    if (pw !== $('#pw2').value) { $('#gateMsg').textContent = '兩次輸入不一致。'; return; }
+    settings.pwHash = await sha(pw); saveSettings();
+  } else if (await sha(pw) !== settings.pwHash) { $('#gateMsg').textContent = '密碼錯誤。'; return; }
+  adminAuthed = true; renderGate();
+}
+$('#gateBtn').onclick = gateSubmit;
+$('#pw1').onkeydown = $('#pw2').onkeydown = e => { if (e.key === 'Enter') gateSubmit(); };
+
+let currentTab = 'people';
+function showTab(n) {
+  currentTab = n;
+  $$('[data-tab]').forEach(x => x.classList.toggle('on', x.dataset.tab === n));
+  $$('.tabpane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + n));
+  if (n === 'people') renderPeople();
+  if (n === 'logs') renderLogs();
+  if (n === 'settings') renderSettings();
+}
+$$('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+/* ---------- 人員名單 ---------- */
+const selected = new Set();
+function fillRoleSelects() {
+  const opts = ROLES.map(r => `<option>${r}</option>`).join('');
+  $('#r_role').innerHTML = opts; $('#e_role').innerHTML = opts;
+  $('#p_role').innerHTML = '<option value="">全部身分</option>' + opts;
+  $('#l_role').innerHTML = '<option value="">全部身分</option>' + opts;
+}
+function isOverdue(p) { return Date.now() - new Date(p.created).getTime() > settings.retentionDays * 86400000; }
+async function renderPeople() {
+  await reloadPeople();
+  const q = $('#p_search').value.trim().toLowerCase(), role = $('#p_role').value;
+  const list = people.filter(p => (!role || p.role === role) && (!q || (p.name + (p.cls || '')).toLowerCase().includes(q)))
+    .sort((a, b) => (a.role + a.cls + a.name).localeCompare(b.role + b.cls + b.name, 'zh-TW'));
+  const overdue = people.filter(isOverdue).length;
+  $('#retentionWarn').innerHTML = `⚠ 臉部資料屬個人資料,請依本校個資保存規範定期清理(例如畢業、離校、調職後應刪除)。目前保存期限設定為 ${settings.retentionDays} 天,<b>${overdue}</b> 位已逾期。`;
+  $('#p_body').innerHTML = list.map(p => `<tr>
+    <td><input type="checkbox" data-id="${p.id}" class="sel" style="width:auto" ${selected.has(p.id) ? 'checked' : ''}></td>
+    <td>${esc(p.name)}</td><td>${esc(p.role)}</td><td>${esc(p.cls)}</td>
+    <td>${p.descriptors && p.descriptors.length ? `<span class="badge ok">已登錄 ${p.descriptors.length} 張</span>` : '<span class="badge bad">未登錄臉部</span>'}</td>
+    <td>${p.consentDate ? fmtDate(p.consentDate) + (p.parentConsent ? '(含家長)' : '') : '—'}</td>
+    <td>${fmtDate(p.created)} ${isOverdue(p) ? '<span class="badge bad">逾期</span>' : ''}</td>
+    <td><button data-act="edit" data-id="${p.id}">編輯</button><button data-act="retake" data-id="${p.id}">補拍</button><button class="danger" data-act="del" data-id="${p.id}">刪除</button></td>
+  </tr>`).join('') || '<tr><td colspan="8" class="note">尚無人員資料。</td></tr>';
+  $('#p_count').textContent = `共 ${people.length} 位,目前顯示 ${list.length} 位。`;
+}
+$('#p_search').oninput = renderPeople; $('#p_role').onchange = renderPeople;
+$('#p_all').onchange = e => { $$('.sel').forEach(c => { c.checked = e.target.checked; e.target.checked ? selected.add(c.dataset.id) : selected.delete(c.dataset.id); }); };
+$('#p_body').onchange = e => { if (e.target.classList.contains('sel')) e.target.checked ? selected.add(e.target.dataset.id) : selected.delete(e.target.dataset.id); };
+$('#p_body').onclick = async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const p = people.find(x => x.id === b.dataset.id); if (!p) return;
+  if (b.dataset.act === 'del') {
+    if (confirm(`確定刪除「${p.name}」的所有資料?此動作無法復原。`)) { await dbDel('people', p.id); selected.delete(p.id); await renderPeople(); }
+  } else if (b.dataset.act === 'edit') {
+    $('#e_id').value = p.id; $('#e_name').value = p.name; $('#e_role').value = p.role; $('#e_cls').value = p.cls || '';
+    $('#editDlg').showModal();
+  } else if (b.dataset.act === 'retake') {
+    resetReg(); $('#r_id').value = p.id; $('#r_name').value = p.name; $('#r_role').value = p.role; $('#r_cls').value = p.cls || '';
+    updateParentWrap(); setRegMsg(`正在為「${p.name}」補拍臉部資料,請勾選同意後拍攝 3 張。`, 'var(--accent)');
+    showTab('register');
+  }
+};
+$('#e_cancel').onclick = () => $('#editDlg').close();
+$('#e_save').onclick = async () => {
+  const p = people.find(x => x.id === $('#e_id').value); if (!p) return;
+  const name = $('#e_name').value.trim(); if (!name) { alert('請輸入姓名'); return; }
+  p.name = name; p.role = $('#e_role').value; p.cls = $('#e_cls').value.trim();
+  await dbPut('people', p); $('#editDlg').close(); renderPeople();
+};
+$('#p_bulkDel').onclick = async () => {
+  if (!selected.size) { alert('請先勾選要刪除的人員。'); return; }
+  if (!confirm(`確定刪除選取的 ${selected.size} 位人員?此動作無法復原。`)) return;
+  for (const id of selected) await dbDel('people', id);
+  selected.clear(); $('#p_all').checked = false; renderPeople();
+};
+$('#p_overdue').onclick = async () => {
+  const list = people.filter(isOverdue);
+  if (!list.length) { alert('目前沒有逾期的資料。'); return; }
+  if (!confirm(`確定刪除 ${list.length} 位已逾期(建立超過 ${settings.retentionDays} 天)的人員資料?`)) return;
+  for (const p of list) { await dbDel('people', p.id); selected.delete(p.id); }
+  renderPeople();
+};
+/* CSV 匯入 */
+function parseCSV(text) {
+  const rows = []; let row = [], cur = '', q = false;
+  text = text.replace(/^\uFEFF/, '');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); cur = ''; if (row.some(x => x.trim() !== '')) rows.push(row); row = [];
+    } else cur += c;
+  }
+  row.push(cur); if (row.some(x => x.trim() !== '')) rows.push(row);
+  return rows;
+}
+$('#p_csv').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rows = parseCSV(await f.text());
+  if (rows.length && rows[0][0].includes('姓名')) rows.shift();
+  await reloadPeople();
+  let ok = 0, dup = 0, bad = 0;
+  for (const r of rows) {
+    const name = (r[0] || '').trim(), role = (r[1] || '').trim(), cls = (r[2] || '').trim();
+    if (!name || !ROLES.includes(role)) { bad++; continue; }
+    if (people.some(p => p.name === name && (p.cls || '') === cls)) { dup++; continue; }
+    await dbPut('people', { id: uid(), name, role, cls, descriptors: [], consent: false, parentConsent: false, consentDate: '', created: new Date().toISOString() });
+    ok++;
+  }
+  e.target.value = '';
+  alert(`匯入完成:新增 ${ok} 位、重複略過 ${dup} 位、格式錯誤略過 ${bad} 筆。\n身分必須是:${ROLES.join('、')}。`);
+  renderPeople();
+};
+
+/* ---------- 登錄人臉 ---------- */
+const reg = { shots: [], thumbs: [] };
+const SHOT_TIPS = ['第 1 張:正面直視鏡頭。', '第 2 張:頭稍微轉向一側。', '第 3 張:換個表情或光線(也可戴口罩拍一張,提高口罩辨識率)。', '已拍滿 3 張,可按「儲存」。'];
+function setRegMsg(t, c) { const m = $('#r_msg'); m.textContent = t; m.style.color = c || 'var(--muted)'; }
+function updateParentWrap() { $('#r_parentWrap').classList.toggle('hidden', $('#r_role').value !== '學生'); }
+function updateShotUi() {
+  $('#r_shot').textContent = `拍攝 (${reg.shots.length}/3)`;
+  $('#r_tip').textContent = SHOT_TIPS[Math.min(reg.shots.length, 3)];
+  const box = $('#r_thumbs'); box.innerHTML = ''; reg.thumbs.forEach(c => box.appendChild(c));
+}
+function resetReg() {
+  reg.shots = []; reg.thumbs = []; updateShotUi();
+  $('#r_id').value = ''; $('#r_name').value = ''; $('#r_cls').value = '';
+  $('#r_consent').checked = false; $('#r_parent').checked = false; setRegMsg('');
+}
+$('#r_role').onchange = updateParentWrap;
+$('#r_reset').onclick = () => { reg.shots = []; reg.thumbs = []; updateShotUi(); setRegMsg(''); };
+$('#r_cancel').onclick = () => { resetReg(); updateParentWrap(); };
+$('#r_shot').onclick = async () => {
+  if (!modelsReady || !stream) { setRegMsg('鏡頭或模型尚未啟用,請回到迎賓畫面按「開始迎賓」。', 'var(--bad)'); return; }
+  if (!$('#r_consent').checked) { setRegMsg('請先勾選同意書。', 'var(--bad)'); return; }
+  if (reg.shots.length >= 3) { setRegMsg('已拍滿 3 張,可按「儲存」或「重拍」。'); return; }
+  setRegMsg('偵測中…');
+  const dets = await faceapi.detectAllFaces(video2, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
+    .withFaceLandmarks().withFaceDescriptors();
+  if (dets.length === 0) { setRegMsg('沒有偵測到人臉,請面向鏡頭並確認光線充足。', 'var(--bad)'); return; }
+  if (dets.length > 1) { setRegMsg('畫面中有多張臉,請只留一人。', 'var(--bad)'); return; }
+  reg.shots.push(Array.from(dets[0].descriptor));
+  // 預覽縮圖(只在畫面暫存,不儲存)
+  const b = dets[0].detection.box, c = document.createElement('canvas'); c.width = c.height = 128;
+  const s = Math.max(b.width, b.height) * 1.2, cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+  c.getContext('2d').drawImage(video2, cx - s / 2, cy - s / 2, s, s, 0, 0, 128, 128);
+  reg.thumbs.push(c); updateShotUi(); setRegMsg(`第 ${reg.shots.length} 張完成。`, 'var(--ok)');
+};
+$('#r_save').onclick = async () => {
+  const name = $('#r_name').value.trim(), role = $('#r_role').value, cls = $('#r_cls').value.trim();
+  if (!name) { setRegMsg('請輸入姓名。', 'var(--bad)'); return; }
+  if (!$('#r_consent').checked) { setRegMsg('請勾選同意書。', 'var(--bad)'); return; }
+  if (role === '學生' && !$('#r_parent').checked) { setRegMsg('學生須勾選「已取得家長/監護人同意」。', 'var(--bad)'); return; }
+  if (reg.shots.length < 3) { setRegMsg('請先拍滿 3 張照片。', 'var(--bad)'); return; }
+  await reloadPeople();
+  const id = $('#r_id').value || uid();
+  // 檢查是否與其他人員過於相似(可能重複登錄)
+  for (const m of matchers) {
+    if (m.p.id === id) continue;
+    for (const d of m.ds) for (const s of reg.shots) {
+      if (faceapi.euclideanDistance(Float32Array.from(s), d) < 0.4) {
+        if (!confirm(`這張臉與已登錄的「${m.p.name}」非常相似,可能是重複登錄。仍要儲存嗎?`)) return;
+        break;
+      }
+    }
+  }
+  const old = people.find(p => p.id === id);
+  const rec = {
+    id, name, role, cls, descriptors: reg.shots.slice(),
+    consent: true, parentConsent: role === '學生', consentDate: new Date().toISOString(),
+    created: old ? old.created : new Date().toISOString()
+  };
+  await dbPut('people', rec); await reloadPeople();
+  resetReg(); updateParentWrap(); setRegMsg(`已儲存「${name}」。`, 'var(--ok)');
+};
+
+/* ---------- 到訪紀錄 ---------- */
+let lastLogRows = [];
+async function renderLogs() {
+  if (!$('#l_from').value) { $('#l_from').value = fmtDate(Date.now()); $('#l_to').value = fmtDate(Date.now()); }
+  const from = new Date($('#l_from').value + 'T00:00:00').getTime();
+  const to = new Date($('#l_to').value + 'T23:59:59').getTime();
+  const role = $('#l_role').value, cls = $('#l_cls').value.trim();
+  const all = await dbAll('logs');
+  lastLogRows = all.filter(l => l.t >= from && l.t <= to && (!role || l.role === role) && (!cls || (l.cls || '').includes(cls))).sort((a, b) => b.t - a.t);
+  const uniq = new Set(lastLogRows.map(l => l.pid)).size;
+  $('#l_sum').textContent = `共 ${lastLogRows.length} 筆紀錄,${uniq} 位不同人員。` + (lastLogRows.length > 500 ? '(畫面僅顯示最新 500 筆,匯出 CSV 為全部)' : '');
+  $('#l_body').innerHTML = lastLogRows.slice(0, 500).map(l => `<tr><td>${fmtTime(l.t)}</td><td>${esc(l.name)}</td><td>${esc(l.role)}</td><td>${esc(l.cls)}</td></tr>`).join('') || '<tr><td colspan="4" class="note">此區間沒有紀錄。</td></tr>';
+}
+$('#l_go').onclick = renderLogs;
+$('#l_csv').onclick = () => {
+  if (!lastLogRows.length) { alert('目前沒有可匯出的紀錄。'); return; }
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const lines = ['時間,姓名,身分,班級/處室'].concat(lastLogRows.map(l => [fmtTime(l.t), l.name, l.role, l.cls].map(q).join(',')));
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `到訪紀錄_${$('#l_from').value}_${$('#l_to').value}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+$('#l_purge').onclick = async () => {
+  const d = prompt('要清除幾天以前的紀錄?(輸入天數,例如 90)', '90'); if (d === null) return;
+  const n = parseInt(d, 10); if (!(n >= 0)) { alert('請輸入有效天數。'); return; }
+  const cutoff = Date.now() - n * 86400000;
+  const old = (await dbAll('logs')).filter(l => l.t < cutoff);
+  if (!old.length) { alert('沒有符合條件的紀錄。'); return; }
+  if (!confirm(`將刪除 ${old.length} 筆 ${n} 天前的紀錄,確定?`)) return;
+  for (const l of old) await dbDel('logs', l.id);
+  renderLogs();
+};
+
+/* ---------- 設定 ---------- */
+function renderSettings() {
+  $('#s_schoolName').value = settings.schoolName; $('#s_announce').value = settings.announce;
+  $('#s_threshold').value = settings.threshold; $('#s_thOut').textContent = Number(settings.threshold).toFixed(2);
+  $('#s_cooldown').value = settings.cooldown; $('#s_welcomeMs').value = settings.welcomeMs; $('#s_retention').value = settings.retentionDays;
+  $('#s_voice').checked = settings.voice; $('#s_volume').value = settings.volume;
+  $('#s_tplStaff').value = settings.tplStaff; $('#s_tplStudent').value = settings.tplStudent;
+  $('#s_tplGuest').value = settings.tplGuest; $('#s_tplStranger').value = settings.tplStranger;
+  $('#s_newpw').value = ''; $('#s_msg').textContent = '';
+}
+$('#s_threshold').oninput = e => { $('#s_thOut').textContent = Number(e.target.value).toFixed(2); };
+$('#s_test').onclick = () => {
+  const keepV = settings.voice, keepVol = settings.volume;
+  settings.voice = true; settings.volume = parseFloat($('#s_volume').value);
+  speak('測試語音,歡迎光臨。'); settings.voice = keepV; settings.volume = keepVol;
+};
+$('#s_logo').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(); const url = URL.createObjectURL(f);
+  img.onload = () => {
+    const k = Math.min(1, 256 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    settings.logo = c.toDataURL('image/png'); saveSettings(); applySettings(); URL.revokeObjectURL(url);
+    $('#s_msg').textContent = '校徽已更新。';
+  };
+  img.src = url; e.target.value = '';
+};
+$('#s_logoClear').onclick = () => { settings.logo = ''; saveSettings(); applySettings(); };
+$('#s_save').onclick = async () => {
+  const clamp = (v, a, b, d) => { v = parseFloat(v); return isNaN(v) ? d : Math.min(b, Math.max(a, v)); };
+  settings.schoolName = $('#s_schoolName').value.trim() || DEFAULTS.schoolName;
+  settings.announce = $('#s_announce').value;
+  settings.threshold = clamp($('#s_threshold').value, 0.3, 0.7, 0.5);
+  settings.cooldown = clamp($('#s_cooldown').value, 5, 600, 30);
+  settings.welcomeMs = clamp($('#s_welcomeMs').value, 2000, 10000, 3000);
+  settings.retentionDays = clamp($('#s_retention').value, 30, 3650, 365);
+  settings.voice = $('#s_voice').checked; settings.volume = clamp($('#s_volume').value, 0, 1, 1);
+  settings.tplStaff = $('#s_tplStaff').value || DEFAULTS.tplStaff;
+  settings.tplStudent = $('#s_tplStudent').value || DEFAULTS.tplStudent;
+  settings.tplGuest = $('#s_tplGuest').value || DEFAULTS.tplGuest;
+  settings.tplStranger = $('#s_tplStranger').value || DEFAULTS.tplStranger;
+  const np = $('#s_newpw').value;
+  if (np) { if (np.length < 4) { $('#s_msg').textContent = '新密碼至少 4 碼。'; return; } settings.pwHash = await sha(np); }
+  saveSettings(); applySettings(); $('#s_newpw').value = ''; $('#s_msg').textContent = '設定已儲存。';
+};
+$('#s_wipe').onclick = async () => {
+  if (!confirm('這會刪除「所有人員的臉部資料」與「所有到訪紀錄」,且無法復原。確定要繼續?')) return;
+  if (prompt('請輸入「清除」二字以確認:') !== '清除') return;
+  await dbClear('people'); await dbClear('logs'); await reloadPeople(); selected.clear();
+  $('#s_msg').textContent = '所有人臉與紀錄資料已清除。';
+};
+
+/* ---------- 啟動流程 ---------- */
+async function boot() {
+  const msg = $('#startMsg'), btn = $('#startBtn');
+  msg.classList.remove('err'); btn.disabled = true;
+  try {
+    await loadModels(t => { msg.textContent = t; });
+    msg.textContent = '正在啟用鏡頭…';
+    await startCamera();
+    await reloadPeople();
+    $('#startOverlay').classList.add('hidden');
+    running = true; $('#statusLine').textContent = `辨識中 · 已登錄 ${matchers.length} 人`;
+    speak(''); // 在使用者點擊後先喚醒語音引擎
+    loop();
+  } catch (e) {
+    msg.classList.add('err'); msg.textContent = e.message; btn.disabled = false; btn.textContent = '重試';
+  }
+}
+$('#startBtn').onclick = boot;
+$('#adminOnlyBtn').onclick = () => { $('#startOverlay').classList.add('hidden'); $('#statusLine').textContent = '未啟用鏡頭'; setView('admin'); };
+setInterval(() => { if (running) $('#statusLine').textContent = `辨識中 · 已登錄 ${matchers.length} 人`; }, 5000);
+
+(async function init() {
+  fillRoleSelects(); applySettings(); updateShotUi(); updateParentWrap();
+  try { await openDB(); } catch (e) { alert('無法使用本機資料庫(IndexedDB),請勿使用無痕模式。'); }
+})();
+</script>
+</body>
+</html>
+
+</body></html>
